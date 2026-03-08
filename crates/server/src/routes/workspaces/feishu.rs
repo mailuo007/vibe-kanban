@@ -236,7 +236,7 @@ mod tests {
         let workspace_id = Uuid::new_v4();
         let binding_id = Uuid::new_v4();
         let app = Router::<()>::new().nest(
-            "/task-attempts/{id}/feishu",
+            "/workspaces/{id}/feishu",
             Router::new().route("/bindings/{binding_id}", patch(extract_binding_id)),
         );
 
@@ -245,7 +245,7 @@ mod tests {
                 Request::builder()
                     .method("PATCH")
                     .uri(format!(
-                        "/task-attempts/{workspace_id}/feishu/bindings/{binding_id}"
+                        "/workspaces/{workspace_id}/feishu/bindings/{binding_id}"
                     ))
                     .body(Body::empty())
                     .expect("request builds"),
@@ -261,7 +261,7 @@ mod tests {
         let workspace_id = Uuid::new_v4();
         let binding_id = Uuid::new_v4();
         let app = Router::<()>::new().nest(
-            "/task-attempts/{id}/feishu",
+            "/workspaces/{id}/feishu",
             Router::new().route("/bindings/{binding_id}", delete(extract_binding_id)),
         );
 
@@ -270,7 +270,7 @@ mod tests {
                 Request::builder()
                     .method("DELETE")
                     .uri(format!(
-                        "/task-attempts/{workspace_id}/feishu/bindings/{binding_id}"
+                        "/workspaces/{workspace_id}/feishu/bindings/{binding_id}"
                     ))
                     .body(Body::empty())
                     .expect("request builds"),
