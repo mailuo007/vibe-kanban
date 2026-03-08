@@ -157,7 +157,42 @@
       "cannotDeleteOpenPr": "PR 開啟時無法刪除分支",
       "unlinkFromIssueLabel": "同時取消與議題的關聯"
     },
-    "linkError": "Failed to link workspace"
+    "linkError": "Failed to link workspace",
+    "feishu": {
+      "dialog": {
+        "title": "飛書綁定",
+        "description": "管理目前工作區的飛書綁定、權限與測試訊息。"
+      },
+      "actions": {
+        "bind": "綁定",
+        "unbind": "解除綁定",
+        "test": "傳送測試訊息"
+      },
+      "suggested": "找到一個建議目標：{{bot}} / {{target}}",
+      "currentBindings": "目前綁定",
+      "emptyBindings": "這個工作區尚未綁定任何飛書目標。",
+      "availableTargets": "可綁定目標",
+      "emptyTargets": "沒有可用目標。請先在設定中重新整理 Bot 目標。",
+      "toggles": {
+        "enabled": "啟用綁定",
+        "notifyOnStatus": "狀態通知",
+        "notifyOnAgentReply": "Agent 回覆通知",
+        "notifyOnPr": "PR 通知",
+        "allowCommands": "允許指令",
+        "allowChatMessages": "允許一般聊天",
+        "allowCards": "允許卡片互動",
+        "ackReactionEnabled": "收到訊息回執",
+        "ackReactionEmojiType": "回執表情",
+        "syncGroupAnnouncement": "同步群公告狀態"
+      },
+      "reactionEmojiOptions": {
+        "Typing": "Typing（敲鍵盤）",
+        "OnIt": "OnIt（處理中）",
+        "OK": "OK",
+        "THUMBSUP": "按讚",
+        "CheckMark": "勾選"
+      }
+    }
   },
   "fileTree": {
     "searchPlaceholder": "搜尋檔案...",

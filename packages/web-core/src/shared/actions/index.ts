@@ -44,6 +44,7 @@ import {
   LinkIcon,
   ArrowBendUpRightIcon,
   ProhibitIcon,
+  ChatCircleDotsIcon,
 } from '@phosphor-icons/react';
 import { useDiffViewStore } from '@/shared/stores/useDiffViewStore';
 import {
@@ -1212,6 +1213,37 @@ export const Actions = {
         }
         throw new Error('Failed to run archive script');
       }
+    },
+  } satisfies WorkspaceActionDefinition,
+
+  BindFeishuBot: {
+    id: 'bind-feishu-bot',
+    label: 'Bind Feishu Bot',
+    icon: ChatCircleDotsIcon,
+    shortcut: 'W F',
+    keywords: ['feishu', 'lark', 'bot', 'chat'],
+    requiresTarget: ActionTargetType.WORKSPACE,
+    isVisible: (ctx) => ctx.hasWorkspace,
+    execute: async (_ctx, workspaceId) => {
+      const { FeishuBindingDialog } = await import(
+        '@/pages/workspaces/FeishuBindingDialog'
+      );
+      await FeishuBindingDialog.show({ workspaceId });
+    },
+  } satisfies WorkspaceActionDefinition,
+
+  ManageFeishuBindings: {
+    id: 'manage-feishu-bindings',
+    label: 'Manage Feishu Bindings',
+    icon: ChatCircleDotsIcon,
+    keywords: ['feishu', 'lark', 'bindings', 'chat'],
+    requiresTarget: ActionTargetType.WORKSPACE,
+    isVisible: (ctx) => ctx.hasWorkspace,
+    execute: async (_ctx, workspaceId) => {
+      const { FeishuBindingDialog } = await import(
+        '@/pages/workspaces/FeishuBindingDialog'
+      );
+      await FeishuBindingDialog.show({ workspaceId });
     },
   } satisfies WorkspaceActionDefinition,
 

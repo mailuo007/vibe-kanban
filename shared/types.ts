@@ -144,6 +144,42 @@ export type Image = { id: string, file_path: string, original_name: string, mime
 
 export type CreateImage = { file_path: string, original_name: string, mime_type: string | null, size_bytes: bigint, hash: string, };
 
+export type FeishuBot = { id: string, name: string, app_id: string, app_secret_ref: string, encrypt_key_ref: string | null, verification_token_ref: string | null, tenant_mode: string, enabled: boolean, last_health_status: string, last_error: string | null, created_at: Date, updated_at: Date, };
+
+export type CreateFeishuBot = { name: string, app_id: string, app_secret_ref: string, encrypt_key_ref: string | null, verification_token_ref: string | null, tenant_mode: string, };
+
+export type UpdateFeishuBot = { name: string, app_id: string, app_secret_ref: string, encrypt_key_ref: string | null, verification_token_ref: string | null, tenant_mode: string, enabled: boolean, };
+
+export type FeishuBotTarget = { id: string, bot_id: string, target_type: string, open_chat_id: string | null, chat_id: string | null, name: string, source: string, is_active: boolean, created_at: Date, updated_at: Date, };
+
+export type CreateFeishuBotTarget = { bot_id: string, target_type: string, open_chat_id: string | null, chat_id: string | null, name: string, source: string, };
+
+export type UpdateFeishuBotTarget = { target_type: string, open_chat_id: string | null, chat_id: string | null, name: string, source: string, is_active: boolean, };
+
+export type WorkspaceFeishuBinding = { id: string, workspace_id: string, bot_id: string, target_id: string, enabled: boolean, notify_on_status: boolean, notify_on_agent_reply: boolean, notify_on_pr: boolean, allow_commands: boolean, allow_chat_messages: boolean, allow_cards: boolean, ack_reaction_enabled: boolean, ack_reaction_emoji_type: string, sync_group_announcement: boolean, created_at: Date, updated_at: Date, };
+
+export type CreateWorkspaceFeishuBinding = { workspace_id: string, bot_id: string, target_id: string, };
+
+export type UpdateWorkspaceFeishuBinding = { enabled: boolean, notify_on_status: boolean, notify_on_agent_reply: boolean, notify_on_pr: boolean, allow_commands: boolean, allow_chat_messages: boolean, allow_cards: boolean, ack_reaction_enabled: boolean, ack_reaction_emoji_type: string, sync_group_announcement: boolean, };
+
+export type FeishuConversation = { id: string, bot_id: string, target_id: string, workspace_id: string, session_id: string | null, feishu_user_id: string | null, last_message_at: string | null, last_card_context: string | null, created_at: Date, updated_at: Date, };
+
+export type CreateFeishuConversation = { bot_id: string, target_id: string, workspace_id: string, session_id: string | null, feishu_user_id: string | null, last_message_at: string | null, last_card_context: string | null, };
+
+export type FeishuDeliveryLog = { id: string, workspace_id: string | null, bot_id: string, target_id: string, event_type: string, payload_summary: string | null, status: string, retry_count: bigint, message_id: string | null, error_message: string | null, sent_at: Date, };
+
+export type CreateFeishuDeliveryLog = { workspace_id: string | null, bot_id: string, target_id: string, event_type: string, payload_summary: string | null, status: string, retry_count: bigint, message_id: string | null, error_message: string | null, };
+
+export type DiscoveredFeishuTarget = { target_type: string, open_chat_id: string | null, chat_id: string | null, name: string, source: string, };
+
+export type FeishuValidationResult = { ok: boolean, message: string, chat_count: number, };
+
+export type SendFeishuMessageInput = { message: string, };
+
+export type SendFeishuMessageResult = { message_id: string | null, };
+
+export type FeishuRuntimeSnapshot = { bot_id: string, running: boolean, generation: bigint, };
+
 export type Workspace = { id: string, task_id: string | null, container_ref: string | null, branch: string, setup_completed_at: string | null, created_at: string, updated_at: string, archived: boolean, pinned: boolean, name: string | null, worktree_deleted: boolean, };
 
 export type WorkspaceWithStatus = { is_running: boolean, is_errored: boolean, id: string, task_id: string | null, container_ref: string | null, branch: string, setup_completed_at: string | null, created_at: string, updated_at: string, archived: boolean, pinned: boolean, name: string | null, worktree_deleted: boolean, };
@@ -477,6 +513,26 @@ pr_url: string | null, };
 export type WorkspaceSummaryResponse = { summaries: Array<WorkspaceSummary>, };
 
 export type DiffStats = { files_changed: number, lines_added: number, lines_removed: number, };
+
+export type CreateFeishuBotRequest = { name: string, app_id: string, app_secret: string, encrypt_key: string | null, verification_token: string | null, tenant_mode: string, };
+
+export type UpdateFeishuBotRequest = { name: string, app_id: string, app_secret: string | null, encrypt_key: string | null, verification_token: string | null, tenant_mode: string, enabled: boolean, };
+
+export type ValidateFeishuBotResponse = { validation: FeishuValidationResult, };
+
+export type FeishuInboundCommandRequest = { event_id: string, workspace_id: string, binding_id: string, command: string, };
+
+export type FeishuInboundCardActionRequest = { event_id: string, workspace_id: string, binding_id: string, action: string, };
+
+export type FeishuInboundActionResponse = { message: string, };
+
+export type CreateWorkspaceFeishuBindingRequest = { bot_id: string, target_id: string, };
+
+export type UpdateWorkspaceFeishuBindingRequest = { enabled: boolean, notify_on_status: boolean, notify_on_agent_reply: boolean, notify_on_pr: boolean, allow_commands: boolean, allow_chat_messages: boolean, allow_cards: boolean, ack_reaction_enabled: boolean, ack_reaction_emoji_type: string, sync_group_announcement: boolean, };
+
+export type WorkspaceFeishuBindTarget = { bot: FeishuBot, targets: Array<FeishuBotTarget>, };
+
+export type SendWorkspaceFeishuTestMessageRequest = { bot_id: string, target_id: string, message: string | null, };
 
 export type DirectoryEntry = { name: string, path: string, is_directory: boolean, is_git_repo: boolean, last_modified: bigint | null, };
 

@@ -157,7 +157,42 @@
       "cannotDeleteOpenPr": "PR 开启时无法删除分支",
       "unlinkFromIssueLabel": "同时取消与议题的关联"
     },
-    "linkError": "Failed to link workspace"
+    "linkError": "Failed to link workspace",
+    "feishu": {
+      "dialog": {
+        "title": "飞书绑定",
+        "description": "管理当前工作区的飞书绑定、权限和测试消息。"
+      },
+      "actions": {
+        "bind": "绑定",
+        "unbind": "解绑",
+        "test": "发送测试消息"
+      },
+      "suggested": "发现了一个推荐目标：{{bot}} / {{target}}",
+      "currentBindings": "当前绑定",
+      "emptyBindings": "当前工作区还没有飞书绑定。",
+      "availableTargets": "可绑定目标",
+      "emptyTargets": "没有可用目标。先在设置里刷新 Bot 目标。",
+      "toggles": {
+        "enabled": "启用绑定",
+        "notifyOnStatus": "状态通知",
+        "notifyOnAgentReply": "Agent 回复通知",
+        "notifyOnPr": "PR 通知",
+        "allowCommands": "允许命令",
+        "allowChatMessages": "允许普通聊天",
+        "allowCards": "允许卡片交互",
+        "ackReactionEnabled": "收到消息回执",
+        "ackReactionEmojiType": "回执表情",
+        "syncGroupAnnouncement": "同步群公告状态"
+      },
+      "reactionEmojiOptions": {
+        "Typing": "Typing（敲键盘）",
+        "OnIt": "OnIt（处理中）",
+        "OK": "OK",
+        "THUMBSUP": "点赞",
+        "CheckMark": "对勾"
+      }
+    }
   },
   "fileTree": {
     "searchPlaceholder": "搜索文件...",

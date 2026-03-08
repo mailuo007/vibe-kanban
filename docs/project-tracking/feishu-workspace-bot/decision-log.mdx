@@ -1,0 +1,111 @@
+---
+title: "Feishu Embedded Workspace Bot Decision Log"
+description: "Record architecture and scope decisions for the embedded Feishu bot project"
+---
+
+## Decisions
+
+### 2026-03-07 — Embed Feishu support into `crates/server`
+
+- Status: selected
+- Reason: you want workspace-level binding and direct integration with existing server-side actions and event flows
+
+### 2026-03-07 — Use a global Feishu bot pool with workspace-level bindings
+
+- Status: selected
+- Reason: this supports both shared application credentials and multiple bindings per workspace without duplicating configuration
+
+### 2026-03-07 — Support multiple Feishu applications and multiple chat targets
+
+- Status: selected
+- Reason: you explicitly want both dimensions available in the product model
+
+### 2026-03-07 — Add Feishu long connection support for inbound messages
+
+- Status: selected and implemented
+- Reason: local live validation showed that outbound delivery worked but direct group messages could not reach Vibe Kanban; long connection mode allows the local server to receive `im.message.receive_v1` without exposing a public callback URL
+
+### 2026-03-07 — Initialise Feishu runtime and dispatcher from `server` startup
+
+- Status: selected
+- Reason: `local-deployment` cannot depend on `server`, so startup-owned singletons in `crates/server/src/main.rs` avoid a crate cycle and still restore enabled runtimes early
+
+### 2026-03-07 — Ship the first runtime with API heartbeat plus inbound HTTP handlers
+
+- Status: selected for the current iteration
+- Reason: this keeps the first delivery inside the existing dependency graph, allows route-driven inbound command handling, and provides verifiable runtime health without adding a dedicated long-connection SDK yet
+
+### 2026-03-07 — Route direct chat commands by bound Feishu target identity
+
+- Status: selected during live validation
+- Reason: once long connection events arrive, the runtime must map incoming `chat_id` values back to one enabled workspace binding and reject ambiguous multi-workspace bindings safely
+
+### 2026-03-07 — Resolve nested binding routes with named path-parameter extraction
+
+- Status: selected during verification
+- Reason: local smoke testing exposed 500 errors on binding update and delete because both the handler and the workspace-loading middleware assumed a single path parameter; reading named parameters makes the nested task-attempt routes stable
+
+### 2026-03-07 — Map one Feishu chat to one fixed workspace session
+
+- Status: selected and implemented
+- Reason: you want ordinary Feishu group messages to behave like the Vibe Kanban workspace chat box, and a fixed session prevents each follow-up message from creating a disconnected execution history
+
+### 2026-03-07 — Expose ordinary Feishu chat as a binding-level toggle
+
+- Status: selected and implemented
+- Reason: you asked for a front-end configuration rather than command-only activation, so each binding now decides whether ordinary messages stay silent or enter the fixed workspace session
+
+### 2026-03-07 — Return the final coding-agent reply to the same bound Feishu chat
+
+- Status: selected and implemented
+- Reason: routing ordinary messages into Vibe Kanban is not enough on its own; the bound Feishu chat also needs the resulting assistant reply so the conversation feels complete from the group chat
+
+### 2026-03-07 — Suppress Feishu status fan-out for execution-only workspace updates
+
+- Status: selected and implemented
+- Reason: the global workspace event stream also emits workspace patches when execution processes start or finish; Feishu status messages now compare stable workspace fields and only send when the visible workspace state actually changed
+
+### 2026-03-07 — Trigger reply delivery from coding-agent turn summary updates
+
+- Status: selected and implemented
+- Reason: local validation showed that the final assistant summary can be written after the execution-process completion event; emitting dedicated `coding_agent_turns` patches lets the Feishu bridge retry reply delivery when that late summary arrives
+
+### 2026-03-07 — Poll workspace sessions to surface externally created Feishu chats
+
+- Status: selected and implemented
+- Reason: fixed Feishu sessions are created outside the browser, so a light session poll keeps the Vibe Kanban chat UI in sync without forcing a full page refresh
+
+### 2026-03-07 — Use message reactions for immediate receive acknowledgements
+
+- Status: selected and implemented
+- Reason: you want a low-noise receipt signal in the original Feishu chat so users can see that Vibe Kanban has already received the message before the final assistant reply is ready
+
+### 2026-03-07 — Use group announcements for durable workspace status
+
+- Status: selected and implemented
+- Reason: you want a single visible status surface for each bound Feishu group without repeated chat-message spam, so runtime state now syncs into the group announcement instead of polling or posting repeated status messages
+
+### 2026-03-07 — Default the receive receipt emoji to the official `Typing` reaction
+
+- Status: selected and implemented
+- Reason: the official Feishu emoji list includes `Typing`, which matches the requested “keyboard / 正在输入” feedback better than a generic thumbs-up receipt
+
+### 2026-03-07 — Keep the Feishu workspace event bridge alive after broadcast lag
+
+- Status: selected and implemented
+- Reason: the bridge listens to the shared `MsgStore`, which carries runtime logs as well as JSON patches; stopping on `broadcast lagged` errors can leave Feishu group announcements stuck on `Running` and suppress the final assistant reply even though the workspace execution has already completed
+
+### 2026-03-07 — Manage exactly one Vibe Kanban status block per Feishu group announcement
+
+- Status: selected and implemented
+- Reason: live inspection showed that older test runs and manual edits could leave multiple text lines in the same group announcement, including non-status content such as `开始了`; syncing now lets Vibe Kanban fully own the text announcement state for a bound group by rewriting the first text block and clearing the remaining text blocks
+
+### 2026-03-07 — Trigger Feishu replies only on real summary changes
+
+- Status: selected and implemented
+- Reason: live inspection showed that UI-only updates such as workspace `mark-seen` changed `coding_agent_turn.updated_at` without changing the summary text, and the Feishu bridge treated those row updates as fresh replies; event emission now only generates a Feishu reply trigger when the summary text itself changes
+
+### 2026-03-07 — Enforce Feishu binding uniqueness at the group level
+
+- Status: selected and implemented
+- Reason: live debugging showed that the real product rule is “one Feishu group, one active workspace”, even when different Feishu bots are involved; binding creation and re-enable flows now reject an already-bound group and return the conflicting workspace name instead of silently reshuffling ownership

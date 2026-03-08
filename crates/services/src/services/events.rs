@@ -1,10 +1,14 @@
-use std::{str::FromStr, sync::Arc};
+use std::{
+    collections::HashMap,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 use db::{
     DBService,
     models::{
-        execution_process::ExecutionProcess, scratch::Scratch, session::Session,
-        workspace::Workspace,
+        coding_agent_turn::CodingAgentTurn, execution_process::ExecutionProcess, scratch::Scratch,
+        session::Session, workspace::Workspace,
     },
 };
 use serde_json::json;
@@ -20,7 +24,10 @@ mod streams;
 #[path = "events/types.rs"]
 pub mod types;
 
-pub use patches::{execution_process_patch, scratch_patch, workspace_patch};
+pub use patches::{
+    coding_agent_turn_patch, coding_agent_turn_summary_patch, execution_process_patch,
+    scratch_patch, workspace_patch,
+};
 pub use types::{EventError, EventPatch, EventPatchInner, HookTables, RecordTypes};
 
 #[derive(Clone)]
@@ -55,6 +62,18 @@ impl EventService {
         Ok(())
     }
 
+    async fn push_workspace_update_for_execution_process(
+        pool: &SqlitePool,
+        msg_store: Arc<MsgStore>,
+        execution_process_id: Uuid,
+    ) -> Result<(), SqlxError> {
+        if let Some(process) = ExecutionProcess::find_by_id(pool, execution_process_id).await? {
+            EventService::push_workspace_update_for_session(pool, msg_store, process.session_id)
+                .await?;
+        }
+        Ok(())
+    }
+
     /// Creates the hook function that should be used with DBService::new_with_after_connect
     pub fn create_hook(
         msg_store: Arc<MsgStore>,
@@ -71,18 +90,48 @@ impl EventService {
             let msg_store_for_hook = msg_store.clone();
             let entry_count_for_hook = entry_count.clone();
             let db_for_hook = db_service.clone();
+            let changed_turn_summaries = Arc::new(Mutex::new(HashMap::<i64, Uuid>::new()));
             Box::pin(async move {
                 let mut handle = conn.lock_handle().await?;
                 let runtime_handle = tokio::runtime::Handle::current();
                 handle.set_preupdate_hook({
                     let msg_store_for_preupdate = msg_store_for_hook.clone();
+                    let changed_turn_summaries = changed_turn_summaries.clone();
                     move |preupdate: sqlx::sqlite::PreupdateHookResult<'_>| {
-                        if preupdate.operation != SqliteOperation::Delete {
-                            return;
-                        }
-
                         match preupdate.table {
-                            "workspaces" => {
+                            "coding_agent_turns"
+                                if preupdate.operation == SqliteOperation::Update =>
+                            {
+                                let old_summary = preupdate
+                                    .get_old_column_value(5)
+                                    .ok()
+                                    .and_then(|value| {
+                                        <Option<String> as Decode<Sqlite>>::decode(value).ok()
+                                    })
+                                    .flatten();
+                                let new_summary = preupdate
+                                    .get_new_column_value(5)
+                                    .ok()
+                                    .and_then(|value| {
+                                        <Option<String> as Decode<Sqlite>>::decode(value).ok()
+                                    })
+                                    .flatten();
+
+                                if should_emit_coding_agent_turn_summary_patch(
+                                    old_summary.as_deref(),
+                                    new_summary.as_deref(),
+                                ) && let Ok(value) = preupdate.get_new_column_value(1)
+                                    && let Ok(execution_process_id) =
+                                        <Uuid as Decode<Sqlite>>::decode(value)
+                                    && let Ok(rowid) = preupdate.get_new_row_id()
+                                {
+                                    changed_turn_summaries
+                                        .lock()
+                                        .expect("changed turn summary mutex poisoned")
+                                        .insert(rowid, execution_process_id);
+                                }
+                            }
+                            "workspaces" if preupdate.operation == SqliteOperation::Delete => {
                                 if let Ok(value) = preupdate.get_old_column_value(0)
                                     && let Ok(workspace_id) =
                                         <Uuid as Decode<Sqlite>>::decode(value)
@@ -91,7 +140,9 @@ impl EventService {
                                     msg_store_for_preupdate.push_patch(patch);
                                 }
                             }
-                            "execution_processes" => {
+                            "execution_processes"
+                                if preupdate.operation == SqliteOperation::Delete =>
+                            {
                                 if let Ok(value) = preupdate.get_old_column_value(0)
                                     && let Ok(process_id) = <Uuid as Decode<Sqlite>>::decode(value)
                                 {
@@ -99,7 +150,7 @@ impl EventService {
                                     msg_store_for_preupdate.push_patch(patch);
                                 }
                             }
-                            "scratch" => {
+                            "scratch" if preupdate.operation == SqliteOperation::Delete => {
                                 // Composite key: need both id (column 0) and scratch_type (column 1)
                                 if let Ok(id_val) = preupdate.get_old_column_value(0)
                                     && let Ok(scratch_id) = <Uuid as Decode<Sqlite>>::decode(id_val)
@@ -121,6 +172,7 @@ impl EventService {
                     let entry_count_for_hook = entry_count_for_hook.clone();
                     let msg_store_for_hook = msg_store_for_hook.clone();
                     let db = db_for_hook.clone();
+                    let changed_turn_summaries = changed_turn_summaries.clone();
 
                     if let Ok(table) = HookTables::from_str(hook.table) {
                         let rowid = hook.rowid;
@@ -128,6 +180,7 @@ impl EventService {
                             let record_type: RecordTypes = match (table, hook.operation.clone()) {
                                 (HookTables::Workspaces, SqliteOperation::Delete)
                                 | (HookTables::ExecutionProcesses, SqliteOperation::Delete)
+                                | (HookTables::CodingAgentTurns, SqliteOperation::Delete)
                                 | (HookTables::Scratch, SqliteOperation::Delete) => {
                                     return;
                                 }
@@ -157,6 +210,21 @@ impl EventService {
                                         Err(e) => {
                                             tracing::error!(
                                                 "Failed to fetch execution_process: {:?}",
+                                                e
+                                            );
+                                            return;
+                                        }
+                                    }
+                                }
+                                (HookTables::CodingAgentTurns, _) => {
+                                    match CodingAgentTurn::find_by_rowid(&db.pool, rowid).await {
+                                        Ok(Some(turn)) => RecordTypes::CodingAgentTurn(turn),
+                                        Ok(None) => {
+                                            return;
+                                        }
+                                        Err(e) => {
+                                            tracing::error!(
+                                                "Failed to fetch coding_agent_turn: {:?}",
                                                 e
                                             );
                                             return;
@@ -252,6 +320,50 @@ impl EventService {
 
                                     return;
                                 }
+                                RecordTypes::CodingAgentTurn(turn) => {
+                                    let patch = match hook.operation {
+                                        SqliteOperation::Insert => coding_agent_turn_patch::add(turn),
+                                        SqliteOperation::Update => {
+                                            coding_agent_turn_patch::replace(turn)
+                                        }
+                                        _ => coding_agent_turn_patch::replace(turn),
+                                    };
+                                    msg_store_for_hook.push_patch(patch);
+
+                                    let summary_change_process_id =
+                                        if hook.operation == SqliteOperation::Update {
+                                            changed_turn_summaries
+                                                .lock()
+                                                .expect("changed turn summary mutex poisoned")
+                                                .remove(&rowid)
+                                        } else {
+                                            None
+                                        };
+
+                                    if let Some(execution_process_id) = summary_change_process_id {
+                                        msg_store_for_hook.push_patch(
+                                            coding_agent_turn_summary_patch::replace(
+                                                execution_process_id,
+                                            ),
+                                        );
+                                    }
+
+                                    if let Err(err) =
+                                        EventService::push_workspace_update_for_execution_process(
+                                            &db.pool,
+                                            msg_store_for_hook.clone(),
+                                            turn.execution_process_id,
+                                        )
+                                        .await
+                                    {
+                                        tracing::error!(
+                                            "Failed to push workspace update after coding agent turn change: {:?}",
+                                            err
+                                        );
+                                    }
+
+                                    return;
+                                }
                                 RecordTypes::DeletedExecutionProcess {
                                     process_id: Some(process_id),
                                     session_id,
@@ -314,5 +426,49 @@ impl EventService {
 
     pub fn msg_store(&self) -> &Arc<MsgStore> {
         &self.msg_store
+    }
+}
+
+fn should_emit_coding_agent_turn_summary_patch(
+    old_summary: Option<&str>,
+    new_summary: Option<&str>,
+) -> bool {
+    let old_summary = old_summary
+        .map(str::trim)
+        .filter(|summary| !summary.is_empty());
+    let new_summary = new_summary
+        .map(str::trim)
+        .filter(|summary| !summary.is_empty());
+
+    match (old_summary, new_summary) {
+        (_, None) => false,
+        (Some(old_summary), Some(new_summary)) => old_summary != new_summary,
+        (None, Some(_)) => true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_emit_coding_agent_turn_summary_patch;
+
+    #[test]
+    fn emits_only_when_summary_text_actually_changes() {
+        assert!(!should_emit_coding_agent_turn_summary_patch(None, None));
+        assert!(!should_emit_coding_agent_turn_summary_patch(
+            Some(""),
+            Some("")
+        ));
+        assert!(should_emit_coding_agent_turn_summary_patch(
+            None,
+            Some("Done")
+        ));
+        assert!(!should_emit_coding_agent_turn_summary_patch(
+            Some("Done"),
+            Some("Done")
+        ));
+        assert!(should_emit_coding_agent_turn_summary_patch(
+            Some("Done"),
+            Some("Updated")
+        ));
     }
 }

@@ -1286,6 +1286,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
  "ts-rs 11.0.1",
  "utils",
@@ -3954,7 +3955,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4261,6 +4262,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "prost"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
+dependencies = [
+ "bytes",
+ "prost-derive",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
+dependencies = [
+ "anyhow",
+ "itertools 0.13.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -4942,6 +4966,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "secrecy"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e891af845473308773346dc847b2c23ee78fe442e0472ac50e22a18a93d3ae5a"
+dependencies = [
+ "zeroize",
+]
+
+[[package]]
 name = "semver"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5225,6 +5258,7 @@ version = "0.1.25"
 dependencies = [
  "anyhow",
  "api-types",
+ "async-trait",
  "axum",
  "base64",
  "bytes",
@@ -5242,9 +5276,11 @@ dependencies = [
  "http",
  "hyper",
  "hyper-util",
+ "json-patch",
  "local-deployment",
  "mime_guess",
  "os_info",
+ "prost",
  "rand 0.8.5",
  "regex",
  "relay-tunnel",
@@ -5253,6 +5289,7 @@ dependencies = [
  "rust-embed",
  "rustls",
  "schemars 1.2.1",
+ "secrecy",
  "sentry",
  "serde",
  "serde_json",
@@ -5266,6 +5303,7 @@ dependencies = [
  "tokio-tungstenite 0.24.0",
  "tokio-util",
  "tokio-yamux",
+ "tower",
  "tower-http 0.5.2",
  "tracing",
  "tracing-subscriber",
@@ -5398,7 +5436,7 @@ version = "3.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32824fab5e16e6c4d86dc1ba84489390419a39f97699852b66480bb87d297ed8"
 dependencies = [
- "dirs 5.0.1",
+ "dirs 6.0.0",
 ]
 
 [[package]]
@@ -6995,7 +7033,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

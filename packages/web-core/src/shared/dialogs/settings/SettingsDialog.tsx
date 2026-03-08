@@ -9,6 +9,7 @@ import {
   CpuIcon,
   PlugIcon,
   BroadcastIcon,
+  ChatCircleDotsIcon,
   CaretLeftIcon,
   XIcon,
 } from '@phosphor-icons/react';
@@ -39,6 +40,7 @@ const SETTINGS_SECTIONS: {
   { id: 'agents', icon: CpuIcon },
   { id: 'mcp', icon: PlugIcon },
   { id: 'relay', icon: BroadcastIcon },
+  { id: 'feishu', icon: ChatCircleDotsIcon },
 ];
 
 export interface SettingsDialogProps {

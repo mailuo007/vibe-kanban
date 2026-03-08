@@ -115,6 +115,10 @@ pub trait Deployment: Clone + Send + Sync + 'static {
         Err(RemoteClientNotConfigured)
     }
 
+    fn feishu_secret_store_path(&self) -> std::path::PathBuf {
+        utils::assets::asset_dir().join("feishu-secrets.json")
+    }
+
     fn shared_api_base(&self) -> Option<String> {
         None
     }

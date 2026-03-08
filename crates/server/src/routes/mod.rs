@@ -13,6 +13,7 @@ pub mod filesystem;
 // pub mod github;
 pub mod events;
 pub mod execution_processes;
+pub mod feishu;
 pub mod frontend;
 pub mod health;
 pub mod images;
@@ -43,6 +44,7 @@ pub fn router(deployment: DeploymentImpl) -> IntoMakeService<Router> {
         .merge(filesystem::router())
         .merge(repo::router())
         .merge(events::router(&deployment))
+        .merge(feishu::router())
         .merge(approvals::router())
         .merge(scratch::router(&deployment))
         .merge(search::router(&deployment))

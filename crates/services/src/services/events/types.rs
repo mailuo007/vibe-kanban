@@ -1,5 +1,8 @@
 use anyhow::Error as AnyhowError;
-use db::models::{execution_process::ExecutionProcess, scratch::Scratch, workspace::Workspace};
+use db::models::{
+    coding_agent_turn::CodingAgentTurn, execution_process::ExecutionProcess, scratch::Scratch,
+    workspace::Workspace,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 use strum_macros::{Display, EnumString};
@@ -23,6 +26,8 @@ pub enum HookTables {
     Workspaces,
     #[strum(to_string = "execution_processes")]
     ExecutionProcesses,
+    #[strum(to_string = "coding_agent_turns")]
+    CodingAgentTurns,
     #[strum(to_string = "scratch")]
     Scratch,
 }
@@ -32,6 +37,7 @@ pub enum HookTables {
 pub enum RecordTypes {
     Workspace(Workspace),
     ExecutionProcess(ExecutionProcess),
+    CodingAgentTurn(CodingAgentTurn),
     Scratch(Scratch),
     DeletedWorkspace {
         rowid: i64,

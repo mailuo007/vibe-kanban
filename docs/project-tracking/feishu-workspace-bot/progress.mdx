@@ -1,0 +1,170 @@
+---
+title: "Feishu Embedded Workspace Bot Progress"
+description: "Track delivered milestones, verification evidence, and remaining manual validation for the embedded Feishu bot project"
+---
+
+## Phase
+
+- Current phase: reaction receipt, group-announcement status delivery, and completion-event reliability hardening complete; final external Feishu smoke validation pending
+- Overall status: implementation complete in the local codebase and verified through local API, Rust test coverage, and post-integration bug-fix validation
+
+## Delivered milestones
+
+### Milestone 1 — Persistence and service boundary
+
+- Added the Feishu persistence migration for bots, targets, bindings, conversations, and delivery logs
+- Added Rust model types and persistence helpers in `crates/db`
+- Fixed the binding creation SQL regression in `crates/db/src/models/workspace_feishu_binding.rs`
+- Added secret storage and the embedded Feishu service boundary in `crates/server/src/feishu`
+- Added shared type generation for Feishu database and route types
+
+### Milestone 2 — Runtime and backend APIs
+
+- Added `FeishuRuntimeManager`, `FeishuRuntime`, and `HttpFeishuClient`
+- Restored enabled bot runtimes during server startup from `crates/server/src/main.rs`
+- Added global Feishu routes in `crates/server/src/routes/feishu.rs`
+- Added workspace-scoped binding routes in `crates/server/src/routes/task_attempts/feishu.rs`
+- Added outbound workspace-status fan-out via the global event bridge
+- Added inbound command and card action handlers with duplicate-event protection
+- Added a per-bot Feishu long-connection receiver for `im.message.receive_v1`
+- Added inbound chat-to-binding resolution by `chat_id`, with safe handling for ambiguous multi-workspace bindings
+
+### Milestone 3 — Frontend management and binding flows
+
+- Added `feishuApi` methods and workspace binding methods in `packages/web-core/src/shared/lib/api.ts`
+- Added `useFeishuBots` and `useWorkspaceFeishuBindings` React Query hooks
+- Added the Feishu settings section in `packages/web-core/src/shared/dialogs/settings/settings/FeishuSettingsSection.tsx`
+- Added workspace actions for `Bind Feishu Bot` and `Manage Feishu Bindings`
+- Added the Feishu binding dialog in `packages/web-core/src/pages/workspaces/FeishuBindingDialog.tsx`
+- Added new shared UI copy to the settings and common locale files
+
+### Milestone 4 — Fixed chat sessions for ordinary Feishu messages
+
+- Added a binding-level `allow_chat_messages` switch so ordinary Feishu messages can be enabled from the workspace binding dialog
+- Added a `session_id` link to Feishu conversations so one Feishu chat maps to one fixed Vibe Kanban session
+- Added backend session-resolution logic that creates the fixed session on first ordinary message and reuses it on follow-up messages
+- Added a shared session follow-up helper so HTTP follow-ups and Feishu chat submissions use the same execution path
+- Added runtime chat submission wiring so long-connection inbound text can start or continue the fixed workspace conversation
+- Added execution-process reply fan-out so the final coding-agent reply is sent back to the bound Feishu chat when the fixed session completes
+- Added delayed reply delivery so Feishu waits for the final persisted assistant summary instead of racing the execution completion event
+- Added workspace-status signature deduplication so Feishu status notifications only send when archived, pinned, branch, or name actually changes
+- Added frontend session-list invalidation when workspace run state changes so Feishu-created fixed sessions appear in the Vibe Kanban workspace UI sooner
+- Added coding-agent-turn event propagation so late summary persistence can trigger a second reply-delivery attempt without needing another execution-process update
+- Added reply-delivery retry behaviour for completed runs with late summaries, which prevents a missing summary from being treated as a final Feishu reply
+- Added delivery-log event typing plus failed-send logging so outbound Feishu issues are easier to diagnose from `feishu_delivery_logs`
+- Added workspace-session polling plus unseen-activity refresh signals so Feishu-created sessions appear in the Vibe Kanban chat UI without a full page reload
+
+### Milestone 5 — Feishu receive acknowledgements and group status announcements
+
+- Added binding-level settings for `ack_reaction_enabled`, `ack_reaction_emoji_type`, and `sync_group_announcement`
+- Added inbound `message_id` extraction from `im.message.receive_v1` payloads so the dispatcher can acknowledge the exact Feishu message that was received
+- Added Feishu message-reaction delivery using the official `Typing` emoji as the default receive receipt
+- Added event-driven group-announcement syncing for `运行中`, `空闲`, and `需要注意` workspace states
+- Added announcement-content deduplication so repeated runtime events do not spam Feishu or fight group-announcement rate limits
+- Added workspace binding UI controls for receive receipts, receipt emoji selection, and group-announcement sync
+- Routed workspace-status fan-out into group announcements when announcement sync is enabled, which avoids returning to noisy `status updated` chat messages
+
+### Milestone 6 — Completion-event reliability hardening
+
+- Fixed inbound duplicate delivery by deduplicating Feishu ordinary chat events on `message_id` instead of only `event_id`
+- Ignored non-user Feishu message events so the bot does not consume its own outbound replies
+- Fixed the global Feishu workspace event bridge so `broadcast lagged` errors no longer stop the bridge permanently
+- Kept the bridge subscribed to the latest patch stream even when shared runtime logs are noisy, which lets bound groups return from `运行中` to `空闲` and receive the final assistant reply after busy runs
+- Updated group-announcement syncing so Vibe Kanban fully owns the text announcement state for bound groups: it keeps the first text block as the canonical status line and clears any other text blocks
+- Fixed Feishu reply fan-out so `coding_agent_turn` updates only trigger on real summary-text changes; UI-only updates such as `mark-seen` no longer resend historical assistant replies back into Feishu
+- Localised the fixed Feishu group-announcement status line into Chinese labels and values, so bound groups now see `工作区` / `分支` / `已归档` / `已置顶` and `空闲` / `运行中` / `需要注意`
+- Enforced one active workspace binding per Feishu group identity, so creating or re-enabling a binding now rejects any group that is already bound to another workspace and reports the conflicting workspace name
+- Kept dispatcher-side self-healing for legacy duplicate rows on the exact same bot target, so older bad data can still be reconciled during inbound chat routing without blocking live group chat
+- Added binding-dialog error surfacing so front-end users now see the backend conflict message directly when they try to bind an already-bound Feishu group
+
+## Verification evidence
+
+- Passed `cargo test -p db feishu -- --nocapture`
+- Passed `cargo test -p server feishu:: -- --nocapture`
+- Passed `cargo test -p server nested_ -- --nocapture`
+- Passed `cargo test -p server extracts_workspace_id_with_extra_path_params -- --nocapture`
+- Passed `cargo test -p server long_connection -- --nocapture`
+- Passed `cargo test -p server feishu::service::tests::ensure_chat_session_reuses_existing_fixed_session -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::routes_plain_chat_messages_into_fixed_workspace_session -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::reuses_same_fixed_session_for_follow_up_messages -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::dispatches_execution_replies_back_to_bound_feishu_conversation -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::completed_process_without_summary_can_reply_after_late_summary -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::adds_receive_ack_reaction_for_inbound_chat_messages -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::updates_group_announcement_for_binding_status -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::ignores_duplicate_inbound_message_ids_from_feishu -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::workspace_event_bridge_keeps_running_after_broadcast_lag -- --nocapture`
+- Passed `cargo test -p server feishu::long_connection::tests::ignores_non_user_text_messages -- --nocapture`
+- Passed `cargo test -p server feishu::client::tests::finds_all_text_announcement_blocks_in_order -- --nocapture`
+- Passed `cargo test -p services emits_only_when_summary_text_actually_changes -- --nocapture`
+- Passed `cargo test -p server create_binding_rejects_group_already_bound_to_another_workspace -- --nocapture`
+- Passed `cargo test -p server update_binding_rejects_enabling_group_bound_to_another_workspace -- --nocapture`
+- Passed `cargo test -p server feishu::dispatcher::tests::reconciles_legacy_duplicate_bindings_for_one_chat_target -- --nocapture`
+- Passed `cargo test -p server feishu:: -- --nocapture`
+- Passed `pnpm run format`
+- Passed `pnpm run generate-types`
+- Passed `pnpm run check`
+- Passed `pnpm run lint`
+- Verified local server boot after repairing the development-only SQLx checksum mismatch for `20260307100000`
+- Verified local HTTP smoke flow for:
+  - `GET /api/health`
+  - `GET/POST/PATCH/DELETE /api/feishu/bots`
+  - `POST /api/feishu/bots/{bot_id}/validate`
+  - `POST /api/feishu/bots/{bot_id}/targets/discover`
+  - `GET/POST/PATCH/DELETE /api/task-attempts/{id}/feishu/bindings`
+  - `POST /api/task-attempts/{id}/feishu/test-message`
+
+## Implementation notes
+
+- The runtime manager and dispatcher are initialised from `crates/server/src/main.rs`
+- This startup wiring avoids a crate-cycle problem between `server` and `local-deployment`
+- The current runtime uses periodic Feishu API validation plus a per-bot Feishu long connection
+- The current outbound bridge fans workspace status changes to enabled bindings
+- Ordinary Feishu text can now either stay command-only or enter a fixed workspace chat session, depending on the binding toggle
+- Fixed chat-session routing is stored in `feishu_conversations.session_id`, which keeps repeated messages in the same Vibe Kanban session
+- Terminal coding-agent replies are now bridged back to the fixed Feishu conversation when `notify_on_agent_reply` is enabled for the binding
+- Local verification repaired a development-only SQLx checksum mismatch in `dev_assets/db.v2.sqlite` after the Feishu migration changed during implementation
+- Nested workspace Feishu binding routes now extract named path parameters in both the route handlers and the workspace-loading middleware, which prevents 500 errors on binding update and delete
+- Direct Feishu text messages are now resolved against the bound target chat and routed either into the command dispatcher or into the fixed workspace chat session
+- Inbound Feishu group messages can now add an immediate receive reaction on the original message, which gives the chat a visible “received and processing” acknowledgement before the assistant reply arrives
+- Group announcement syncing is now event-driven and deduplicated by rendered content, so Feishu sees the latest workspace state without periodic polling or repeated announcement churn
+- Duplicate Feishu message pushes are now deduplicated by `message_id` instead of only `event_id`, matching Feishu's event-delivery guidance and preventing repeated workspace runs from one incoming group message
+- Non-user inbound text events are now ignored before they reach workspace chat routing, which prevents the bot from accidentally re-consuming its own Feishu messages
+- Reply delivery now tolerates the timing gap between execution completion and summary persistence, which fixes missed second replies in long-lived Feishu conversations
+- Workspace status notifications are now suppressed for execution-only workspace patches, which removes repeated `status updated` messages during ordinary chat runs
+- When group-announcement sync is enabled for a binding, workspace status fan-out updates the announcement instead of adding another chat status message
+- Coding-agent turn updates now emit dedicated event patches, which lets the Feishu bridge react when the final summary is written after the execution-process completion update
+- Local live debugging showed that a workspace execution could complete in SQLite while Feishu still stayed on `Running`; the root cause was the global Feishu event bridge stopping on `broadcast lagged` errors from the shared `MsgStore`
+- The Feishu event bridge now warns and skips stale shared log messages instead of exiting, so later `execution_processes` and `coding_agent_turns` patches can still deliver the final reply and restore the announcement to `Idle`
+- Live inspection of the target group's announcement blocks showed that old test runs and manual edits could leave multiple text lines such as `开始了`; announcement syncing now rewrites the first text block to the canonical status line and clears all remaining text blocks on the same group
+- Live inspection of `feishu_delivery_logs` and `coding_agent_turns.updated_at` showed that workspace `mark-seen` actions were updating historical turns and causing old summaries to be re-sent into Feishu; event emission now distinguishes true summary changes from UI-only row updates
+- Live inspection of `workspace_feishu_bindings` showed that one Feishu group had been left with two enabled bindings to different workspaces; binding creation and re-enable flows now reject that state up front with a conflict message, while inbound chat keeps a narrow self-heal path for exact legacy duplicate rows on the same bot target
+- Delivery logs now distinguish status notifications, command replies, ordinary agent replies, and failed sends
+- The workspace session list now refreshes in the background, which helps the chat view discover Feishu-created fixed sessions without a manual page refresh
+- The new `coding_agent_turns` row lookup now uses a runtime SQLx query, which keeps `pnpm run dev` working without requiring a manual `DATABASE_URL` export or refreshed offline query metadata
+- The Feishu settings page now keeps an explicit create mode, which stops **New Bot** from snapping back to the currently selected bot and accidentally overwriting an existing record
+
+## Manual validation checklist
+
+You still need live Feishu credentials to run the final external validation.
+
+1. Create a Feishu self-built app in Settings
+2. Validate the bot and refresh targets
+3. Open a workspace and bind one discovered target
+4. Send a test message from the binding dialog
+5. Enable **Receive Reaction** and confirm the binding keeps the default `Typing` emoji unless you intentionally change it
+6. Enable **Sync Group Announcement** and rename or archive the workspace to confirm the group announcement updates instead of sending another chat status message
+7. Enable **Allow Chat Messages** for the binding
+8. Send a normal Feishu group message and confirm Vibe Kanban adds the receive reaction and reuses one fixed session for follow-up messages
+9. Confirm the group announcement moves into `Running` while the chat is being processed and returns to `Idle` or `Needs attention` when the run ends
+10. Confirm the final coding-agent reply is delivered back into the same Feishu chat
+11. Send `/vk status` from the bound Feishu chat and confirm the command path still replies
+12. Optionally POST an inbound command or card action through the Feishu helper routes
+13. Restart the local server and confirm enabled runtimes recover
+
+## Remaining follow-up
+
+- Run the live Feishu validation flow with real credentials
+- Verify the Feishu app has the reaction and group-announcement permissions in the target tenant
+- Decide whether the fixed-session reply bridge should later send richer incremental progress instead of the final assistant reply only
+- Decide whether to keep the helper HTTP inbound routes long-term now that long connection mode handles direct chat commands

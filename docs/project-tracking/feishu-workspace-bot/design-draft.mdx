@@ -1,0 +1,320 @@
+---
+title: "Feishu Embedded Workspace Bot Design Draft"
+description: "Working design for embedding Feishu bot management and workspace bindings into crates/server"
+---
+
+<Info>
+This is a working draft. It captures decisions already discussed and sections that still need approval.
+</Info>
+
+## Goal
+
+You want to embed Feishu support directly into `crates/server` so that each `workspace` can bind to one or more Feishu applications and one or more target chats from the workspace actions flow.
+
+## Selected direction
+
+- Embed the Feishu subsystem into `crates/server`
+- Use Feishu self-built applications
+- Use long connection mode for local development and local runtime
+- Support multiple Feishu applications
+- Support multiple chat targets under each application
+- Bind these resources at the `workspace` level
+
+## Implementation update
+
+The delivered implementation keeps the same embedded server boundary, but the first shipped runtime differs slightly from the original draft:
+
+- `FeishuRuntimeManager` and `FeishuDispatcher` are initialised from `crates/server/src/main.rs`
+- runtime health currently comes from periodic Feishu API validation rather than a dedicated long-connection client
+- inbound command and card handling currently enters through local Feishu API routes
+- outbound workspace status notifications are bridged from the existing server event stream
+
+This keeps the first delivery inside the current crate graph and preserves a clean path to a later long-connection upgrade if you decide to add it.
+
+## Current architecture draft
+
+The feature is treated as a dedicated subsystem rather than a small route addition.
+
+### Proposed module boundary
+
+- `runtime`: starts and manages long connection clients for enabled Feishu applications
+- `client`: wraps outbound Feishu API calls such as sending messages and updating cards
+- `service`: owns business rules for application registration, workspace binding, and target selection
+- `dispatcher`: routes inbound Feishu events and outbound Vibe Kanban events
+- `routes`: exposes local APIs for settings, listing bots, binding targets, and querying current bindings
+
+### Why this boundary fits
+
+- It keeps Feishu protocol concerns away from the core workspace and execution modules
+- It lets you hot-load or disable Feishu applications without restarting the full server
+- It gives the UI one clean API surface for settings and workspace actions
+
+## Approved architecture
+
+### Embedding strategy
+
+- Embed the Feishu subsystem directly into `crates/server`
+- Start a Feishu runtime manager when the server starts
+- Load enabled Feishu applications from local state
+- Hot-reload application runtimes when you add, update, enable, or disable a bot
+
+### Separation of concerns
+
+- `runtime` owns long connection lifecycle, reconnects, and health tracking
+- `client` owns outbound Feishu API calls
+- `service` owns business rules and validation
+- `dispatcher` translates inbound and outbound events
+- `routes` expose local API endpoints for settings and workspace actions
+
+### Current integration points
+
+- Outbound notifications initially bridge from the existing server event flow
+- Workspace-level actions continue to use the existing local server route model
+- The frontend entry point remains the existing `workspaceActions` command page
+
+## Approved data model
+
+### Global Feishu applications
+
+Use a global application pool rather than storing bot credentials on each workspace.
+
+- `feishu_bots`
+  - stores the logical bot application record
+  - includes non-secret metadata such as name, app ID, enabled state, and health fields
+
+### Bot target catalogue
+
+Store sendable destinations separately from the bot record.
+
+- `feishu_bot_targets`
+  - stores chats, direct conversations, threads, or other send targets under a bot
+  - supports manual and discovered targets
+
+### Workspace bindings
+
+Use a binding table so a workspace can connect to more than one target.
+
+- `workspace_feishu_bindings`
+  - links one workspace to one bot target
+  - includes behaviour flags such as notification, command, and card permissions
+
+### Conversation context
+
+Track inbound context separately from binding state.
+
+- `feishu_conversations`
+  - maps inbound Feishu events to a workspace context
+  - stores the information needed to route later replies and card callbacks
+
+### Delivery observability
+
+Keep delivery history lightweight but queryable.
+
+- `feishu_delivery_logs`
+  - records outbound message attempts, result state, and failures
+  - can later evolve into a fuller retry mechanism if needed
+
+### Secret storage direction
+
+- Store business relationships in SQLite
+- Store sensitive values such as `app_secret`, `encrypt_key`, and `verification_token` via a dedicated secret storage abstraction
+- Do not store plaintext secrets in the general config object
+
+## Approved API surface
+
+### Global bot management
+
+Expose global settings routes under `/api/feishu/*`.
+
+- list bots
+- create bot
+- update bot
+- delete bot
+- validate bot credentials
+- list or refresh known targets for a bot
+
+### Workspace binding management
+
+Expose workspace-scoped routes under `/api/task-attempts/{id}/feishu/*`.
+
+- list current bindings
+- list bindable targets
+- create a binding
+- update binding flags
+- delete a binding
+- send a test message
+
+### UI alignment
+
+- Add `Bind Feishu Bot` to `workspaceActions`
+- Add `Manage Feishu Bindings` to `workspaceActions`
+- Keep global bot registration in Settings
+- Treat one-click bind as a shortcut only when the candidate bot and target are unambiguous
+
+## Approved event mapping
+
+### Outbound notifications
+
+Use workspace-scoped outbound notifications first.
+
+- workspace created
+- workspace renamed
+- workspace archived
+- execution started
+- execution completed
+- execution failed
+- pull request created or status changed
+
+Each workspace binding receives its own outbound delivery. If one workspace is bound to multiple Feishu targets, the system sends one delivery per target.
+
+### Card interactions
+
+Bind card actions to the current workspace context.
+
+Approved first-pass card actions:
+
+- view status
+- open workspace
+- stop execution
+- archive workspace
+- mute notifications
+
+Dangerous actions should not execute blindly. Use a confirmation step before destructive or disruptive operations.
+
+### Message commands
+
+Support command handling only after the system can resolve the current workspace or a default creation template.
+
+Approved first-pass command set:
+
+- `/vk help`
+- `/vk status`
+- `/vk open`
+- `/vk stop`
+- `/vk archive`
+- `/vk new`
+
+### Create flow guardrails
+
+Do not guess workspace creation parameters from free text alone.
+
+- `/vk new` should depend on a configured default template
+- the template should define repo, branch target, and executor defaults
+- if no template exists, the bot should return guidance instead of creating a workspace
+
+### Default permissions
+
+Use conservative defaults for safety.
+
+- enable notifications for execution start, completion, and failure
+- enable safe commands such as `help`, `status`, and `open`
+- enable status and navigation card actions
+- disable destructive actions by default until explicitly allowed on the binding
+
+## Approved runtime design
+
+### Runtime manager
+
+Start one global `FeishuRuntimeManager` inside `crates/server`.
+
+- load enabled Feishu bots at server startup
+- manage one runtime per bot
+- support add, update, enable, disable, and remove flows without restarting the whole server
+
+### Per-bot runtime
+
+Run each bot as an isolated long-lived task or actor.
+
+Each runtime owns:
+
+- long connection lifecycle
+- reconnect logic
+- health state
+- recent error state
+- inbound event intake
+- outbound sending for that bot
+
+### Isolation rules
+
+Keep bot runtimes independent.
+
+- one broken bot must not block other bots
+- one failing target must not block other targets
+- one failing inbound command must not poison the runtime state
+
+### Health model
+
+Track and surface runtime health clearly.
+
+Suggested health states:
+
+- `starting`
+- `healthy`
+- `degraded`
+- `reconnecting`
+- `disabled`
+- `failed`
+
+### Reconnect strategy
+
+Use automatic reconnect with exponential backoff and jitter.
+
+- retry fast at first
+- back off on repeated failures
+- keep trying at a lower rate after extended failure
+- surface degraded state in settings and bot details
+
+### Update behaviour
+
+Rebuild runtimes on credential-sensitive changes.
+
+- adding a bot starts a new runtime
+- changing secrets replaces the existing runtime
+- disabling a bot stops receiving and sending
+- deleting a bot should be blocked or confirmed if bindings still exist
+
+### Delivery behaviour
+
+Keep outbound delivery observable and bounded.
+
+- record each attempt in `feishu_delivery_logs`
+- retry failures a limited number of times
+- do not block core workspace operations on Feishu delivery failure
+
+### Startup and shutdown ordering
+
+Use predictable lifecycle ordering.
+
+- start database and secret storage first
+- restore runtimes after core services are available
+- expose Feishu management only after initial runtime restoration
+- stop new deliveries before shutting runtimes down
+
+### Secret handling
+
+Keep sensitive values outside the general config object.
+
+- resolve secret references at runtime startup
+- hold only runtime-needed values in memory
+- recreate runtimes after secret changes rather than mutating them in place
+
+## UI entry points confirmed so far
+
+- Global settings should manage the pool of registered Feishu applications
+- `workspaceActions` should provide a binding entry point for the current workspace
+- The workspace binding flow should let you:
+  - list available Feishu applications
+  - inspect current bindings
+  - bind or unbind one or more chat targets
+
+## Confirmed design constraints
+
+- The solution must run locally on your machine
+- The feature should be embedded into `crates/server`, not added as a separate sidecar
+- The model must support both:
+  - multiple Feishu applications
+  - multiple chats or sessions under those applications
+
+## Open sections
+
+- Validation and testing

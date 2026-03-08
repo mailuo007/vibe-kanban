@@ -1,7 +1,9 @@
 pub mod error;
+pub mod feishu;
 pub mod middleware;
 pub mod preview_proxy;
 pub mod routes;
+pub mod session_follow_up;
 pub mod tunnel;
 
 // #[cfg(feature = "cloud")]

@@ -1,0 +1,235 @@
+---
+title: "Feishu Integration"
+description: "Register Feishu bots, bind workspace targets, and send workspace updates from Vibe Kanban"
+---
+
+Vibe Kanban includes an embedded Feishu integration for local server deployments. You can register one or more Feishu self-built apps, discover available chat targets, bind them to individual workspaces, and send status updates or safe actions from the workspace flow.
+
+<Info>
+The current implementation runs inside the local server. You need valid Feishu app credentials before you can complete the live setup.
+</Info>
+
+## What you can do
+
+- Register multiple Feishu bots in **Settings**
+- Discover sendable chat targets for each bot
+- Bind one workspace to one or more Feishu targets
+- Keep each Feishu group bound to only one active workspace at a time
+- Send workspace status updates to bound chats
+- Send manual test messages from the binding flow
+- Receive direct Feishu text commands through long connection mode
+- Handle safe inbound commands and card actions through the helper inbound routes
+
+## Before you start
+
+Make sure you have:
+
+- a Feishu self-built app
+- the app ID and app secret
+- the optional encrypt key and verification token if your app uses them
+- a local Vibe Kanban server running with the latest migration set
+- Feishu event subscriptions configured for persistent connection mode if you want the bot to receive direct chat messages
+
+## Register a bot
+
+<Steps>
+<Step title="Open Settings">
+  Open **Settings** and select **Feishu** in the left navigation.
+</Step>
+
+<Step title="Create the bot">
+  Enter the bot name, app ID, app secret, and any optional security fields. Save the bot to persist the metadata and secrets locally.
+</Step>
+
+<Step title="Validate the credentials">
+  Use **Validate Bot** to check that Vibe Kanban can authenticate with Feishu.
+
+  <Check>
+  A successful validation updates the bot health and returns a success message.
+  </Check>
+</Step>
+
+<Step title="Refresh targets">
+  Use **Refresh Targets** to discover chats that the bot can send to.
+</Step>
+</Steps>
+
+## Bind a workspace
+
+<Steps>
+<Step title="Open workspace actions">
+  Open the workspace command bar actions and choose **Bind Feishu Bot** or **Manage Feishu Bindings**.
+</Step>
+
+<Step title="Choose a target">
+  Select one of the discovered bot targets and create the binding.
+
+  <Warning>
+  A Feishu group can only have one active workspace binding at a time. If the group is already bound elsewhere, Vibe Kanban rejects the new binding and tells you which workspace currently owns it.
+  </Warning>
+</Step>
+
+<Step title="Set permissions">
+  Configure whether the binding is enabled and whether it allows notifications, ordinary chat, commands, or card actions.
+
+  <Warning>
+  Keep destructive capabilities disabled unless you trust the chat and the people who can trigger those actions.
+  </Warning>
+</Step>
+
+<Step title="Send a test message">
+  Use **Send Test** to confirm that the binding can deliver to the target chat.
+</Step>
+</Steps>
+
+## Receive chat commands
+
+<Steps>
+<Step title="Enable long connection mode">
+  In the Feishu developer console, open **Events and Callbacks**, set the subscription mode to **Receive events/callbacks through persistent connection**, and save the change.
+</Step>
+
+<Step title="Subscribe to message receive events">
+  Subscribe to **接收消息 v2.0** (`im.message.receive_v1`) for the app.
+
+  <Warning>
+  The bot cannot react to group messages until this event subscription is enabled and the required message-read permissions have been approved for the app.
+  </Warning>
+</Step>
+
+<Step title="Allow commands on the binding">
+  Open the workspace **Feishu Bindings** dialog and enable **允许命令** for the target binding if you want the chat to execute commands beyond `help` and `status`.
+</Step>
+
+<Step title="Restart the local server">
+  Restart Vibe Kanban after changing the Feishu callback mode so the bot reconnects with the latest long-connection configuration.
+</Step>
+
+<Step title="Send a command from the bound chat">
+  Send `/vk status` in the bound Feishu chat. Vibe Kanban should reply in the same chat with the current workspace status.
+</Step>
+</Steps>
+
+## Use ordinary chat mode
+
+<Steps>
+<Step title="Enable ordinary chat on the binding">
+  Open the workspace **Feishu Bindings** dialog and enable **Allow Chat Messages** for the target binding.
+
+  <Info>
+  This toggle is separate from **Allow Commands**. Ordinary chat messages can stay enabled even if you keep command execution disabled.
+  </Info>
+</Step>
+
+<Step title="Enable receive receipts and group status sync">
+  In the same binding dialog, turn on **Receipt Reaction** and **Sync Group Announcement**.
+
+  <Info>
+  The default receipt emoji is the official `Typing` reaction, which gives the Feishu group an immediate “received and processing” signal before the final assistant reply arrives.
+  </Info>
+</Step>
+
+<Step title="Send a normal Feishu message">
+  Send a plain text message in the bound Feishu chat without the `/vk` prefix.
+</Step>
+
+<Step title="Reuse the fixed workspace session">
+  Send another normal message in the same Feishu chat. Vibe Kanban keeps using the same workspace session for that bound chat instead of creating a new session each time.
+
+  <Info>
+  The workspace page refreshes its session list in the background, so a Feishu-created fixed session should appear in the Vibe Kanban chat UI within a few seconds without a full page reload.
+  </Info>
+</Step>
+
+<Step title="Wait for the assistant reply">
+  When the coding-agent run completes, Vibe Kanban sends the final assistant reply back to the same bound Feishu chat.
+
+  <Check>
+  Normal chat uses one fixed session per bound Feishu chat, the original Feishu message receives a reaction receipt, and the group announcement moves between `运行中`, `空闲`, and `需要注意` as the workspace state changes.
+  </Check>
+</Step>
+</Steps>
+
+## Inbound routes
+
+The local server exposes inbound Feishu helper routes:
+
+- `POST /api/feishu/inbound/commands`
+- `POST /api/feishu/inbound/cards`
+
+These routes remain available for helper integrations and manual testing. Duplicate event IDs are ignored to reduce repeated execution.
+
+## Runtime behaviour
+
+- Enabled bots are restored when the local server starts
+- Runtime health is refreshed through periodic Feishu API validation
+- Enabled bots also open a Feishu long connection to receive direct chat messages
+- Workspace status changes are bridged from the local event stream to enabled bindings
+- Ordinary Feishu chat messages can be routed into one fixed workspace session per bound chat
+- Bound Feishu chats can add an immediate receive reaction on the original group message
+- Group announcements can be synced from workspace runtime state with event-driven deduplication
+- Group-announcement sync lets Vibe Kanban fully own the group's text announcement state, so the first text block becomes the canonical status line and any other text blocks are cleared on the next sync
+- Final coding-agent replies are sent back to the bound Feishu chat for that fixed session
+- Reply delivery can also be triggered by a later `coding_agent_turn` summary update, which prevents missed replies when the final summary is persisted after the execution-process completion event
+- UI-only `coding_agent_turn` updates such as `mark-seen` no longer trigger Feishu reply fan-out, so historical assistant summaries are not replayed into the group chat
+- The Feishu workspace event bridge now skips stale broadcast messages instead of stopping on lag, so busy runs can still return the group announcement to `空闲` and deliver the final reply
+- The fixed group-announcement status line now uses Chinese labels and values such as `工作区`, `分支`, `已归档`, `已置顶`, `运行中`, and `空闲`
+- Status notifications are only sent when the workspace's visible state changes, which avoids repeated status messages during ordinary chat runs
+- The workspace session list refreshes in the background so externally created Feishu sessions become visible in the Vibe Kanban chat UI without a manual refresh
+- Disabling a bot stops its runtime and prevents further delivery attempts
+
+## Local verification checklist
+
+1. Register a bot in Settings
+2. Validate the bot
+3. Refresh targets
+4. Bind a workspace target
+5. Send a test message
+6. Enable **Receipt Reaction** and confirm the bound Feishu message gets the `Typing` reaction
+7. Enable **Sync Group Announcement** and confirm the group announcement reflects workspace status changes
+8. Enable **Allow Chat Messages** and send a normal message from the bound chat
+9. Confirm the final assistant reply returns to the same chat
+10. Send `/vk status` from the bound chat and confirm the command path still replies
+11. Restart the server and confirm the enabled runtime comes back
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Validation fails">
+  Re-check the app ID, app secret, and tenant mode. Refresh the bot after correcting any credentials.
+</Accordion>
+
+<Accordion title="No targets appear">
+  Make sure the Feishu app can access the chats you expect to discover. Then run **Refresh Targets** again.
+</Accordion>
+
+<Accordion title="Messages do not arrive">
+  Verify that the binding is enabled, the target is active, and the selected chat is still valid for the bot. Then confirm that the app uses persistent connection mode, `im.message.receive_v1` is subscribed, the bot has the required message permissions, and the correct binding toggles are enabled:
+
+  - turn on **Allow Chat Messages** for ordinary chat
+  - turn on **Allow Commands** for slash commands such as `/vk status`
+  - keep **Agent Reply Notifications** enabled if you want the final assistant reply sent back to Feishu
+</Accordion>
+
+<Accordion title="The message arrives but no reaction or announcement appears">
+  Confirm the Feishu app has the required reaction and group-announcement scopes, the bot is inside the target group, and the binding still has **Receipt Reaction** and **Sync Group Announcement** enabled. Group announcements also require a group `chat_id`, so single chats and targets missing `chat_id` cannot be synced.
+</Accordion>
+
+<Accordion title="One Feishu message triggers duplicate replies or the announcement stays on Running too long">
+  Vibe Kanban now deduplicates inbound Feishu events by `message_id`, ignores non-user sender events, and keeps the Feishu workspace event bridge alive when the shared runtime message bus lags. This prevents three common failure modes: one user message starting multiple runs, the bot re-consuming its own outbound messages, and the group announcement staying on `Running` because the completion bridge stopped early.
+
+  If you still see the old behaviour after updating, restart the local server so the latest long-connection handler and event-bridge logic are active, then test again with a brand-new group message.
+</Accordion>
+
+<Accordion title="The group announcement shows more than one Vibe Kanban status line">
+  Vibe Kanban now fully owns the group's text announcement state when announcement sync is enabled. On the next sync it rewrites the first text block to the canonical status line and clears any remaining text blocks, including older test text such as `开始了`.
+</Accordion>
+
+<Accordion title="The workspace chat does not show the Feishu conversation immediately">
+  Wait a few seconds before refreshing. Vibe Kanban now refreshes the workspace session list in the background and should surface the Feishu-created fixed session automatically. If the session still does not appear, confirm that **Allow Chat Messages** is enabled and that the message was accepted by the bound Feishu chat rather than rejected as an ambiguous multi-workspace binding.
+</Accordion>
+
+<Accordion title="Binding fails because the group is already bound">
+  Vibe Kanban now enforces one active workspace binding per Feishu group, even if the duplicate binding would come from another bot entry. Unbind the group from the workspace named in the error message first, then retry the binding from the workspace you actually want to keep active.
+</Accordion>
+</AccordionGroup>

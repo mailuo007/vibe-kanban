@@ -127,6 +127,50 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       });
   }, [workspaceId, isCreateMode, queryClient]);
 
+  useEffect(() => {
+    if (!workspaceId || isCreateMode) return;
+
+    queryClient.invalidateQueries({
+      queryKey: ['workspaceSessions', workspaceId],
+    });
+  }, [
+    workspaceId,
+    isCreateMode,
+    currentWorkspaceSummary?.isRunning,
+    currentWorkspaceSummary?.hasUnseenActivity,
+    currentWorkspaceSummary?.latestProcessCompletedAt,
+    currentWorkspaceSummary?.latestProcessStatus,
+    queryClient,
+  ]);
+
+  useEffect(() => {
+    if (!workspaceId || isCreateMode) return;
+    if (sessions.length === 0) return;
+    if (!selectedSessionId) return;
+
+    const latestSessionId = sessions[0]?.id;
+    if (!latestSessionId || latestSessionId === selectedSessionId) return;
+
+    if (
+      currentWorkspaceSummary?.isRunning ||
+      currentWorkspaceSummary?.hasUnseenActivity ||
+      currentWorkspaceSummary?.latestProcessCompletedAt ||
+      currentWorkspaceSummary?.latestProcessStatus
+    ) {
+      selectLatestSession();
+    }
+  }, [
+    workspaceId,
+    isCreateMode,
+    sessions,
+    selectedSessionId,
+    selectLatestSession,
+    currentWorkspaceSummary?.isRunning,
+    currentWorkspaceSummary?.hasUnseenActivity,
+    currentWorkspaceSummary?.latestProcessCompletedAt,
+    currentWorkspaceSummary?.latestProcessStatus,
+  ]);
+
   const selectWorkspace = useCallback(
     (id: string) => {
       appNavigation.goToWorkspace(id);

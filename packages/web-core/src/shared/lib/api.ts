@@ -94,6 +94,21 @@ import {
   RelayPairedClient,
   ListRelayPairedClientsResponse,
   RemoveRelayPairedClientResponse,
+  FeishuBot,
+  FeishuBotTarget,
+  WorkspaceFeishuBinding,
+  CreateFeishuBotRequest,
+  UpdateFeishuBotRequest,
+  ValidateFeishuBotResponse,
+  SendFeishuMessageInput,
+  SendFeishuMessageResult,
+  CreateWorkspaceFeishuBindingRequest,
+  UpdateWorkspaceFeishuBindingRequest,
+  WorkspaceFeishuBindTarget,
+  SendWorkspaceFeishuTestMessageRequest,
+  FeishuInboundCommandRequest,
+  FeishuInboundCardActionRequest,
+  FeishuInboundActionResponse,
 } from 'shared/types';
 import type { Project as RemoteProject } from 'shared/remote-types';
 import type { WorkspaceWithSession } from '@/shared/types/attempt';
@@ -703,6 +718,175 @@ export const attemptsApi = {
       CreateWorkspaceFromPrResponse,
       CreateFromPrError
     >(response);
+  },
+
+  listFeishuBindings: async (
+    attemptId: string
+  ): Promise<WorkspaceFeishuBinding[]> => {
+    const response = await makeRequest(
+      `/api/task-attempts/${attemptId}/feishu/bindings`
+    );
+    return handleApiResponse<WorkspaceFeishuBinding[]>(response);
+  },
+
+  createFeishuBinding: async (
+    attemptId: string,
+    data: CreateWorkspaceFeishuBindingRequest
+  ): Promise<WorkspaceFeishuBinding> => {
+    const response = await makeRequest(
+      `/api/task-attempts/${attemptId}/feishu/bindings`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<WorkspaceFeishuBinding>(response);
+  },
+
+  updateFeishuBinding: async (
+    attemptId: string,
+    bindingId: string,
+    data: UpdateWorkspaceFeishuBindingRequest
+  ): Promise<WorkspaceFeishuBinding> => {
+    const response = await makeRequest(
+      `/api/task-attempts/${attemptId}/feishu/bindings/${bindingId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<WorkspaceFeishuBinding>(response);
+  },
+
+  deleteFeishuBinding: async (
+    attemptId: string,
+    bindingId: string
+  ): Promise<void> => {
+    const response = await makeRequest(
+      `/api/task-attempts/${attemptId}/feishu/bindings/${bindingId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return handleApiResponse<void>(response);
+  },
+
+  listFeishuBindableTargets: async (
+    attemptId: string
+  ): Promise<WorkspaceFeishuBindTarget[]> => {
+    const response = await makeRequest(
+      `/api/task-attempts/${attemptId}/feishu/bindable-targets`
+    );
+    return handleApiResponse<WorkspaceFeishuBindTarget[]>(response);
+  },
+
+  sendFeishuTestMessage: async (
+    attemptId: string,
+    data: SendWorkspaceFeishuTestMessageRequest
+  ): Promise<void> => {
+    const response = await makeRequest(
+      `/api/task-attempts/${attemptId}/feishu/test-message`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<void>(response);
+  },
+};
+
+export const feishuApi = {
+  listBots: async (): Promise<FeishuBot[]> => {
+    const response = await makeRequest('/api/feishu/bots');
+    return handleApiResponse<FeishuBot[]>(response);
+  },
+
+  getBot: async (botId: string): Promise<FeishuBot> => {
+    const response = await makeRequest(`/api/feishu/bots/${botId}`);
+    return handleApiResponse<FeishuBot>(response);
+  },
+
+  createBot: async (data: CreateFeishuBotRequest): Promise<FeishuBot> => {
+    const response = await makeRequest('/api/feishu/bots', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<FeishuBot>(response);
+  },
+
+  updateBot: async (
+    botId: string,
+    data: UpdateFeishuBotRequest
+  ): Promise<FeishuBot> => {
+    const response = await makeRequest(`/api/feishu/bots/${botId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<FeishuBot>(response);
+  },
+
+  deleteBot: async (botId: string): Promise<void> => {
+    const response = await makeRequest(`/api/feishu/bots/${botId}`, {
+      method: 'DELETE',
+    });
+    return handleApiResponse<void>(response);
+  },
+
+  validateBot: async (botId: string): Promise<ValidateFeishuBotResponse> => {
+    const response = await makeRequest(`/api/feishu/bots/${botId}/validate`, {
+      method: 'POST',
+    });
+    return handleApiResponse<ValidateFeishuBotResponse>(response);
+  },
+
+  listTargets: async (botId: string): Promise<FeishuBotTarget[]> => {
+    const response = await makeRequest(`/api/feishu/bots/${botId}/targets`);
+    return handleApiResponse<FeishuBotTarget[]>(response);
+  },
+
+  discoverTargets: async (botId: string): Promise<FeishuBotTarget[]> => {
+    const response = await makeRequest(
+      `/api/feishu/bots/${botId}/targets/discover`,
+      {
+        method: 'POST',
+      }
+    );
+    return handleApiResponse<FeishuBotTarget[]>(response);
+  },
+
+  sendTestMessage: async (
+    botId: string,
+    targetId: string,
+    data: SendFeishuMessageInput
+  ): Promise<SendFeishuMessageResult> => {
+    const response = await makeRequest(
+      `/api/feishu/bots/${botId}/targets/${targetId}/test-message`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<SendFeishuMessageResult>(response);
+  },
+
+  handleInboundCommand: async (
+    data: FeishuInboundCommandRequest
+  ): Promise<FeishuInboundActionResponse> => {
+    const response = await makeRequest('/api/feishu/inbound/commands', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<FeishuInboundActionResponse>(response);
+  },
+
+  handleInboundCardAction: async (
+    data: FeishuInboundCardActionRequest
+  ): Promise<FeishuInboundActionResponse> => {
+    const response = await makeRequest('/api/feishu/inbound/cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<FeishuInboundActionResponse>(response);
   },
 };
 

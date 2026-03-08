@@ -20,3 +20,6 @@ strum = "0.27.2"
 strum_macros = "0.27.2"
 futures = "0.3.32"
 log = "0.4.29"
+
+[dev-dependencies]
+tokio = { workspace = true }

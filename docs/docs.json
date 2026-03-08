@@ -112,6 +112,7 @@
         "group": "Integrations",
         "pages": [
           "integrations/github-integration",
+          "integrations/feishu-integration",
           "integrations/azure-repos-integration",
           "integrations/vscode-extension",
           "integrations/mcp-server-configuration",

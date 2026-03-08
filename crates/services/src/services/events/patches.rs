@@ -1,5 +1,6 @@
 use db::models::{
-    execution_process::ExecutionProcess, scratch::Scratch, workspace::WorkspaceWithStatus,
+    coding_agent_turn::CodingAgentTurn, execution_process::ExecutionProcess, scratch::Scratch,
+    workspace::WorkspaceWithStatus,
 };
 use json_patch::{AddOperation, Patch, PatchOperation, RemoveOperation, ReplaceOperation};
 use uuid::Uuid;
@@ -48,6 +49,61 @@ pub mod execution_process_patch {
             path: execution_process_path(process_id)
                 .try_into()
                 .expect("Execution process path should be valid"),
+        })])
+    }
+}
+
+/// Helper functions for creating coding agent turn-specific patches.
+pub mod coding_agent_turn_patch {
+    use super::*;
+
+    fn coding_agent_turn_path(turn_id: Uuid) -> String {
+        format!(
+            "/coding_agent_turns/{}",
+            escape_pointer_segment(&turn_id.to_string())
+        )
+    }
+
+    pub fn add(turn: &CodingAgentTurn) -> Patch {
+        Patch(vec![PatchOperation::Add(AddOperation {
+            path: coding_agent_turn_path(turn.id)
+                .try_into()
+                .expect("Coding agent turn path should be valid"),
+            value: serde_json::to_value(turn)
+                .expect("Coding agent turn serialization should not fail"),
+        })])
+    }
+
+    pub fn replace(turn: &CodingAgentTurn) -> Patch {
+        Patch(vec![PatchOperation::Replace(ReplaceOperation {
+            path: coding_agent_turn_path(turn.id)
+                .try_into()
+                .expect("Coding agent turn path should be valid"),
+            value: serde_json::to_value(turn)
+                .expect("Coding agent turn serialization should not fail"),
+        })])
+    }
+}
+
+/// Helper functions for creating coding agent turn summary-specific patches.
+pub mod coding_agent_turn_summary_patch {
+    use super::*;
+
+    fn coding_agent_turn_summary_path(execution_process_id: Uuid) -> String {
+        format!(
+            "/coding_agent_turn_summaries/{}",
+            escape_pointer_segment(&execution_process_id.to_string())
+        )
+    }
+
+    pub fn replace(execution_process_id: Uuid) -> Patch {
+        Patch(vec![PatchOperation::Replace(ReplaceOperation {
+            path: coding_agent_turn_summary_path(execution_process_id)
+                .try_into()
+                .expect("Coding agent turn summary path should be valid"),
+            value: serde_json::json!({
+                "execution_process_id": execution_process_id
+            }),
         })])
     }
 }

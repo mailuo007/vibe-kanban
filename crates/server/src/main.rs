@@ -1,7 +1,14 @@
 use anyhow::{self, Error as AnyhowError};
 use axum::Router;
 use deployment::{Deployment, DeploymentError};
-use server::{DeploymentImpl, preview_proxy, routes, tunnel};
+use server::{
+    DeploymentImpl,
+    feishu::{
+        dispatcher::{init_global_dispatcher, spawn_global_workspace_event_bridge},
+        runtime_manager::init_global_runtime_manager,
+    },
+    preview_proxy, routes, tunnel,
+};
 use services::services::container::ContainerService;
 use sqlx::Error as SqlxError;
 use strip_ansi_escapes::strip;
@@ -84,6 +91,14 @@ async fn main() -> Result<(), VibeKanbanError> {
     deployment
         .track_if_analytics_allowed("session_start", serde_json::json!({}))
         .await;
+
+    let feishu_runtime_manager = init_global_runtime_manager(&deployment);
+    if let Err(error) = feishu_runtime_manager.restore_enabled_bots().await {
+        tracing::warn!(?error, "Failed to restore Feishu bot runtimes at startup");
+    }
+    let _ = init_global_dispatcher(&deployment);
+    std::mem::drop(spawn_global_workspace_event_bridge(deployment.clone()));
+
     // Preload global executor options cache for all executors with DEFAULT presets
     tokio::spawn(async move {
         executors::executors::utils::preload_global_executor_options_cache().await;

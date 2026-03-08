@@ -157,7 +157,42 @@
       "cannotDeleteOpenPr": "PR이 열려 있는 동안에는 브랜치를 삭제할 수 없습니다",
       "unlinkFromIssueLabel": "이슈에서도 연결 해제"
     },
-    "linkError": "Failed to link workspace"
+    "linkError": "Failed to link workspace",
+    "feishu": {
+      "dialog": {
+        "title": "Feishu Bindings",
+        "description": "Manage Feishu bindings, capabilities, and test messages for this workspace."
+      },
+      "actions": {
+        "bind": "Bind",
+        "unbind": "Unbind",
+        "test": "Send Test"
+      },
+      "suggested": "Suggested target found: {{bot}} / {{target}}",
+      "currentBindings": "Current Bindings",
+      "emptyBindings": "This workspace does not have any Feishu bindings yet.",
+      "availableTargets": "Available Targets",
+      "emptyTargets": "No available targets. Refresh bot targets in Settings first.",
+      "toggles": {
+        "enabled": "Enabled",
+        "notifyOnStatus": "Status Notifications",
+        "notifyOnAgentReply": "Agent Reply Notifications",
+        "notifyOnPr": "PR Notifications",
+        "allowCommands": "Allow Commands",
+        "allowChatMessages": "Allow Chat Messages",
+        "allowCards": "Allow Card Actions",
+        "ackReactionEnabled": "Receipt Reaction",
+        "ackReactionEmojiType": "Receipt Emoji",
+        "syncGroupAnnouncement": "Sync Group Announcement"
+      },
+      "reactionEmojiOptions": {
+        "Typing": "Typing",
+        "OnIt": "On it",
+        "OK": "OK",
+        "THUMBSUP": "Thumbs up",
+        "CheckMark": "Check mark"
+      }
+    }
   },
   "fileTree": {
     "searchPlaceholder": "파일 검색...",

@@ -171,6 +171,41 @@
       "deleteBranchLabel": "Delete branch",
       "cannotDeleteOpenPr": "Cannot delete branch while PR is open",
       "unlinkFromIssueLabel": "Also unlink from issue"
+    },
+    "feishu": {
+      "dialog": {
+        "title": "Feishu Bindings",
+        "description": "Manage Feishu bindings, capabilities, and test messages for this workspace."
+      },
+      "actions": {
+        "bind": "Bind",
+        "unbind": "Unbind",
+        "test": "Send Test"
+      },
+      "suggested": "Suggested target found: {{bot}} / {{target}}",
+      "currentBindings": "Current Bindings",
+      "emptyBindings": "This workspace does not have any Feishu bindings yet.",
+      "availableTargets": "Available Targets",
+      "emptyTargets": "No available targets. Refresh bot targets in Settings first.",
+      "toggles": {
+        "enabled": "Enabled",
+        "notifyOnStatus": "Status Notifications",
+        "notifyOnAgentReply": "Agent Reply Notifications",
+        "notifyOnPr": "PR Notifications",
+        "allowCommands": "Allow Commands",
+        "allowChatMessages": "Allow Chat Messages",
+        "allowCards": "Allow Card Actions",
+        "ackReactionEnabled": "Receipt Reaction",
+        "ackReactionEmojiType": "Receipt Emoji",
+        "syncGroupAnnouncement": "Sync Group Announcement"
+      },
+      "reactionEmojiOptions": {
+        "Typing": "Typing",
+        "OnIt": "On it",
+        "OK": "OK",
+        "THUMBSUP": "Thumbs up",
+        "CheckMark": "Check mark"
+      }
     }
   },
   "fileTree": {

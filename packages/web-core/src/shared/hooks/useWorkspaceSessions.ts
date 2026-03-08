@@ -44,6 +44,8 @@ export function useWorkspaceSessions(
     queryKey: ['workspaceSessions', workspaceId],
     queryFn: () => sessionsApi.getByWorkspace(workspaceId!),
     enabled: enabled && !!workspaceId,
+    refetchInterval: enabled && !!workspaceId ? 3000 : false,
+    refetchOnWindowFocus: true,
   });
 
   // Combined effect: handle workspace changes and auto-select sessions

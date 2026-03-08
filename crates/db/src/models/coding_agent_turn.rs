@@ -81,6 +81,26 @@ impl CodingAgentTurn {
         .await
     }
 
+    pub async fn find_by_rowid(pool: &SqlitePool, rowid: i64) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, CodingAgentTurn>(
+            r#"SELECT
+                id,
+                execution_process_id,
+                agent_session_id,
+                agent_message_id,
+                prompt,
+                summary,
+                seen,
+                created_at,
+                updated_at
+               FROM coding_agent_turns
+               WHERE rowid = ?"#,
+        )
+        .bind(rowid)
+        .fetch_optional(pool)
+        .await
+    }
+
     pub async fn find_by_agent_session_id(
         pool: &SqlitePool,
         agent_session_id: &str,

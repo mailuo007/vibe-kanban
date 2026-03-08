@@ -1,0 +1,33 @@
+---
+title: "Feishu Workspace Bot Project Hub"
+description: "Track the design, decisions, and delivery status for the embedded Feishu workspace bot project"
+---
+
+This folder tracks the embedded Feishu workspace bot project for Vibe Kanban.
+
+You can use these documents to review the current design, follow progress, and keep the project scope aligned while the implementation is still being defined.
+
+<Info>
+This area is a working project space. It is not yet end-user documentation.
+</Info>
+
+## Documents
+
+- [Design draft](./design-draft)
+- [Progress tracker](./progress)
+- [Decision log](./decision-log)
+- [Formal design plan](../../plans/2026-03-07-feishu-embedded-workspace-bot-design)
+- [Implementation plan](../../plans/2026-03-07-feishu-embedded-workspace-bot)
+
+## Current status
+
+- The project direction is to embed Feishu support directly into `crates/server`.
+- The selected model is a global Feishu bot pool with workspace-level bindings.
+- The core implementation is now in the codebase, including direct inbound chat commands over Feishu long connection mode, ordinary message routing into one fixed workspace session per Feishu chat, receive-ack reactions on inbound group messages, event-driven group announcement status sync, late-summary-safe reply delivery back to the same bound chat, and session refresh in the workspace UI without a full page reload.
+- The remaining work is limited to live credential validation and any future product refinements such as richer progress streaming.
+
+## Working agreement
+
+- Keep architecture and delivery notes here while the feature is being designed.
+- Record approved decisions in the decision log as they are made.
+- Update the progress tracker whenever the scope, phase, or next actions change.

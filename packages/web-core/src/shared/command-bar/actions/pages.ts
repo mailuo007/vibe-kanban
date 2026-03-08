@@ -77,6 +77,14 @@ export const Pages: Record<StaticPageId, CommandBarPage> = {
           { type: 'action', action: Actions.RunArchiveScript },
         ],
       },
+      {
+        type: 'group',
+        label: 'Integrations',
+        items: [
+          { type: 'action', action: Actions.BindFeishuBot },
+          { type: 'action', action: Actions.ManageFeishuBindings },
+        ],
+      },
     ],
   },
 

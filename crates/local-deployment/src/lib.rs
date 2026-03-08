@@ -323,6 +323,10 @@ impl Deployment for LocalDeployment {
     fn shared_api_base(&self) -> Option<String> {
         self.shared_api_base.clone()
     }
+
+    fn feishu_secret_store_path(&self) -> std::path::PathBuf {
+        utils::assets::asset_dir().join("feishu-secrets.json")
+    }
 }
 
 impl LocalDeployment {

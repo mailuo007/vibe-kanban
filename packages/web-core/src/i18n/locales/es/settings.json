@@ -28,7 +28,9 @@
         "remote-projects": "Proyectos",
         "remote-projectsDesc": "Gestionar proyectos",
         "relay": "Remote Access",
-        "relayDesc": "Relay tunnel and enrollment"
+        "relayDesc": "Relay tunnel and enrollment",
+        "feishu": "Feishu",
+        "feishuDesc": "Manage Feishu bots and targets"
       }
     },
     "general": {
@@ -580,6 +582,70 @@
         "title": "Sign in required",
         "description": "Sign in to manage your remote projects.",
         "action": "Sign in"
+      }
+    },
+    "feishu": {
+      "title": "Feishu Integration",
+      "description": "Manage embedded Feishu bots, credentials, and bindable targets.",
+      "actions": {
+        "newBot": "New Bot",
+        "create": "Create Bot",
+        "save": "Save Bot",
+        "delete": "Delete Bot",
+        "validate": "Validate Bot",
+        "refreshTargets": "Refresh Targets"
+      },
+      "botList": {
+        "title": "Bots",
+        "loading": "Loading Feishu bots…",
+        "empty": "No Feishu bots yet. Create one to get started."
+      },
+      "form": {
+        "name": {
+          "label": "Bot Name",
+          "placeholder": "e.g. Engineering Bot"
+        },
+        "appId": {
+          "label": "App ID",
+          "placeholder": "cli_xxx"
+        },
+        "appSecret": {
+          "label": "App Secret",
+          "placeholder": "Enter a new app secret"
+        },
+        "encryptKey": {
+          "label": "Encrypt Key",
+          "placeholder": "Optional"
+        },
+        "verificationToken": {
+          "label": "Verification Token",
+          "placeholder": "Optional"
+        },
+        "tenantMode": {
+          "label": "Tenant Mode",
+          "selfBuilt": "Self-built app"
+        },
+        "enabled": {
+          "label": "Enable this bot",
+          "description": "Disabling stops the runtime and blocks new notifications."
+        }
+      },
+      "targets": {
+        "title": "Discovered Targets",
+        "description": "{{count}} targets currently synced for this bot.",
+        "empty": "No targets synced yet. Refresh targets to discover chats.",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "messages": {
+        "created": "Feishu bot created.",
+        "updated": "Feishu bot updated.",
+        "deleted": "Feishu bot deleted.",
+        "saveError": "Failed to save Feishu bot.",
+        "validateError": "Failed to validate Feishu bot.",
+        "refreshError": "Failed to refresh targets.",
+        "deleteError": "Failed to delete Feishu bot.",
+        "targetsRefreshed": "Refreshed {{count}} targets."
       }
     }
   },

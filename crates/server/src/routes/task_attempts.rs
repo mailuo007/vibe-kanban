@@ -1,5 +1,6 @@
 pub mod codex_setup;
 pub mod cursor_setup;
+pub mod feishu;
 pub mod gh_cli_setup;
 pub mod images;
 pub mod pr;
@@ -2076,6 +2077,7 @@ pub fn router(deployment: &DeploymentImpl) -> Router<DeploymentImpl> {
                 .route("/first-message", get(get_first_user_message))
                 .route("/mark-seen", put(mark_seen))
                 .route("/link", post(link_workspace))
+                .nest("/feishu", feishu::router())
                 .layer(from_fn_with_state(
                     deployment.clone(),
                     load_workspace_middleware,

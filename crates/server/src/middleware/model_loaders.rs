@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use axum::{
     extract::{Path, Request, State},
     http::StatusCode,
@@ -12,12 +14,22 @@ use uuid::Uuid;
 
 use crate::DeploymentImpl;
 
+fn extract_uuid_path_param(
+    params: &HashMap<String, String>,
+    key: &str,
+) -> Result<Uuid, StatusCode> {
+    let value = params.get(key).ok_or(StatusCode::BAD_REQUEST)?;
+    Uuid::parse_str(value).map_err(|_| StatusCode::BAD_REQUEST)
+}
+
 pub async fn load_workspace_middleware(
     State(deployment): State<DeploymentImpl>,
-    Path(workspace_id): Path<Uuid>,
+    Path(params): Path<HashMap<String, String>>,
     mut request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    let workspace_id = extract_uuid_path_param(&params, "id")?;
+
     // Load the Workspace from the database
     let workspace = match Workspace::find_by_id(&deployment.db().pool, workspace_id).await {
         Ok(Some(w)) => w,
@@ -113,4 +125,23 @@ pub async fn load_session_middleware(
 
     request.extensions_mut().insert(session);
     Ok(next.run(request).await)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extracts_workspace_id_with_extra_path_params() {
+        let workspace_id = Uuid::new_v4();
+        let binding_id = Uuid::new_v4();
+        let params = HashMap::from([
+            ("id".to_string(), workspace_id.to_string()),
+            ("binding_id".to_string(), binding_id.to_string()),
+        ]);
+
+        let extracted = extract_uuid_path_param(&params, "id").expect("workspace id extracts");
+
+        assert_eq!(extracted, workspace_id);
+    }
 }

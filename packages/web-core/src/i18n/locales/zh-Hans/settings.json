@@ -28,7 +28,9 @@
         "remote-projects": "项目",
         "remote-projectsDesc": "管理项目",
         "relay": "Remote Access",
-        "relayDesc": "Relay tunnel and enrollment"
+        "relayDesc": "Relay tunnel and enrollment",
+        "feishu": "飞书",
+        "feishuDesc": "管理飞书 Bot 和目标"
       }
     },
     "general": {
@@ -580,6 +582,70 @@
         "title": "Sign in required",
         "description": "Sign in to manage your remote projects.",
         "action": "Sign in"
+      }
+    },
+    "feishu": {
+      "title": "飞书集成",
+      "description": "管理嵌入式飞书 Bot、凭据和可绑定目标。",
+      "actions": {
+        "newBot": "新建 Bot",
+        "create": "创建 Bot",
+        "save": "保存 Bot",
+        "delete": "删除 Bot",
+        "validate": "验证 Bot",
+        "refreshTargets": "刷新目标"
+      },
+      "botList": {
+        "title": "Bot 列表",
+        "loading": "正在加载 Feishu Bot…",
+        "empty": "还没有 Feishu Bot。请先创建一个。"
+      },
+      "form": {
+        "name": {
+          "label": "Bot 名称",
+          "placeholder": "例如：Engineering Bot"
+        },
+        "appId": {
+          "label": "App ID",
+          "placeholder": "cli_xxx"
+        },
+        "appSecret": {
+          "label": "App Secret",
+          "placeholder": "输入新的 App Secret"
+        },
+        "encryptKey": {
+          "label": "Encrypt Key",
+          "placeholder": "可选"
+        },
+        "verificationToken": {
+          "label": "Verification Token",
+          "placeholder": "可选"
+        },
+        "tenantMode": {
+          "label": "租户模式",
+          "selfBuilt": "自建应用"
+        },
+        "enabled": {
+          "label": "启用此 Bot",
+          "description": "禁用后会停止运行时并阻止新的通知。"
+        }
+      },
+      "targets": {
+        "title": "发现的目标",
+        "description": "当前已同步 {{count}} 个目标。",
+        "empty": "还没有同步到目标。点击“刷新目标”开始发现。",
+        "active": "已启用",
+        "inactive": "未启用"
+      },
+      "messages": {
+        "created": "Feishu Bot 已创建。",
+        "updated": "Feishu Bot 已更新。",
+        "deleted": "Feishu Bot 已删除。",
+        "saveError": "保存 Feishu Bot 失败。",
+        "validateError": "验证 Feishu Bot 失败。",
+        "refreshError": "刷新目标失败。",
+        "deleteError": "删除 Feishu Bot 失败。",
+        "targetsRefreshed": "已刷新 {{count}} 个目标。"
       }
     }
   },
