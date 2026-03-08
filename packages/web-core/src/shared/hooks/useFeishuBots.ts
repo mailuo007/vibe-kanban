@@ -5,6 +5,7 @@ import type {
   UpdateFeishuBotRequest,
 } from 'shared/types';
 import { feishuApi } from '@/shared/lib/api';
+import { workspaceFeishuKeys } from '@/shared/hooks/useWorkspaceFeishuBindings';
 
 export const feishuKeys = {
   all: ['feishu'] as const,
@@ -34,6 +35,7 @@ export function useCreateFeishuBot() {
     mutationFn: (data: CreateFeishuBotRequest) => feishuApi.createBot(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feishuKeys.bots() });
+      queryClient.invalidateQueries({ queryKey: workspaceFeishuKeys.all });
     },
   });
 }
@@ -51,6 +53,7 @@ export function useUpdateFeishuBot() {
     onSuccess: (bot) => {
       queryClient.invalidateQueries({ queryKey: feishuKeys.bots() });
       queryClient.invalidateQueries({ queryKey: feishuKeys.bot(bot.id) });
+      queryClient.invalidateQueries({ queryKey: workspaceFeishuKeys.all });
     },
   });
 }
@@ -61,6 +64,7 @@ export function useDeleteFeishuBot() {
     mutationFn: (botId: string) => feishuApi.deleteBot(botId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feishuKeys.bots() });
+      queryClient.invalidateQueries({ queryKey: workspaceFeishuKeys.all });
     },
   });
 }
@@ -72,6 +76,7 @@ export function useValidateFeishuBot() {
     onSuccess: (_result, botId) => {
       queryClient.invalidateQueries({ queryKey: feishuKeys.bots() });
       queryClient.invalidateQueries({ queryKey: feishuKeys.targets(botId) });
+      queryClient.invalidateQueries({ queryKey: workspaceFeishuKeys.all });
     },
   });
 }
@@ -83,6 +88,7 @@ export function useDiscoverFeishuTargets() {
     onSuccess: (_targets, botId) => {
       queryClient.invalidateQueries({ queryKey: feishuKeys.targets(botId) });
       queryClient.invalidateQueries({ queryKey: feishuKeys.bots() });
+      queryClient.invalidateQueries({ queryKey: workspaceFeishuKeys.all });
     },
   });
 }

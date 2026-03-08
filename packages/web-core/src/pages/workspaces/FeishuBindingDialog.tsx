@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { create, useModal } from '@ebay/nice-modal-react';
 import {
@@ -49,14 +49,31 @@ const FeishuBindingDialogImpl = create<FeishuBindingDialogProps>(
   ({ workspaceId }) => {
     const modal = useModal();
     const { t } = useTranslation('common');
-    const { data: bindings = [], isLoading: bindingsLoading } =
-      useWorkspaceFeishuBindings(workspaceId);
-    const { data: bindableTargets = [], isLoading: targetsLoading } =
-      useWorkspaceFeishuBindableTargets(workspaceId);
+    const {
+      data: bindingsData,
+      error: bindingsError,
+      isLoading: bindingsLoading,
+      refetch: refetchBindings,
+    } = useWorkspaceFeishuBindings(workspaceId);
+    const {
+      data: bindableTargetsData,
+      error: targetsError,
+      isLoading: targetsLoading,
+      refetch: refetchTargets,
+    } = useWorkspaceFeishuBindableTargets(workspaceId);
     const createBinding = useCreateWorkspaceFeishuBinding(workspaceId);
     const updateBinding = useUpdateWorkspaceFeishuBinding(workspaceId);
     const deleteBinding = useDeleteWorkspaceFeishuBinding(workspaceId);
     const sendTestMessage = useSendWorkspaceFeishuTestMessage(workspaceId);
+    const bindings = bindingsData ?? [];
+    const bindableTargets = bindableTargetsData ?? [];
+
+    useEffect(() => {
+      if (!modal.visible) return;
+
+      void refetchBindings();
+      void refetchTargets();
+    }, [modal.visible, workspaceId, refetchBindings, refetchTargets]);
 
     const targetLookup = useMemo(() => {
       const map = new Map<
@@ -118,6 +135,9 @@ const FeishuBindingDialogImpl = create<FeishuBindingDialogProps>(
       sendTestMessage.error;
     const mutationErrorMessage =
       mutationError instanceof Error ? mutationError.message : null;
+    const queryError = bindingsError || targetsError;
+    const queryErrorMessage =
+      queryError instanceof Error ? queryError.message : null;
 
     const buildBindingUpdate = (
       binding: WorkspaceFeishuBinding,
@@ -157,6 +177,12 @@ const FeishuBindingDialogImpl = create<FeishuBindingDialogProps>(
               {mutationErrorMessage && (
                 <Alert variant="destructive">
                   <AlertDescription>{mutationErrorMessage}</AlertDescription>
+                </Alert>
+              )}
+
+              {queryErrorMessage && (
+                <Alert variant="destructive">
+                  <AlertDescription>{queryErrorMessage}</AlertDescription>
                 </Alert>
               )}
 
@@ -388,7 +414,11 @@ const FeishuBindingDialogImpl = create<FeishuBindingDialogProps>(
                 <h3 className="text-sm font-medium text-foreground">
                   {t('workspaces.feishu.availableTargets')}
                 </h3>
-                {availableTargets.length === 0 ? (
+                {queryErrorMessage ? (
+                  <div className="rounded-md border border-dashed p-4 text-sm text-destructive">
+                    {queryErrorMessage}
+                  </div>
+                ) : availableTargets.length === 0 ? (
                   <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
                     {t('workspaces.feishu.emptyTargets')}
                   </div>
