@@ -9,9 +9,10 @@ use axum::{
     routing::{get, post},
 };
 use db::models::{
-    execution_process::ExecutionProcess,
+    execution_process::{ExecutionProcess, ExecutionProcessRunReason},
     session::{CreateSession, Session},
     workspace::{Workspace, WorkspaceError},
+    workspace_repo::WorkspaceRepo,
 };
 use deployment::Deployment;
 use executors::profile::ExecutorConfig;
@@ -25,7 +26,7 @@ use crate::{
     DeploymentImpl,
     error::ApiError,
     middleware::load_session_middleware,
-    routes::workspaces::RunScriptError,
+    routes::workspaces::execution::RunScriptError,
     session_follow_up::{SessionFollowUpRequest, start_session_follow_up},
 };
 
